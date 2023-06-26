@@ -42,9 +42,18 @@ class Syslog
 
 	constructor($host, $opts = [])
 	{
-		$this->socket = Socket(Socket::AF($host), "SOCK_DGRAM");
-		$this->socket->settimeout(1);
-		$this->socket->connect($host, $opts["port"] ?? 514);
+		if ($host[0] == "/")
+		{
+			$this->socket = Socket("AF_UNIX", "SOCK_DGRAM");
+			$this->socket->settimeout(1);
+			$this->socket->connect($host);
+		}
+		else
+		{
+			$this->socket = Socket(Socket::AF($host), "SOCK_DGRAM");
+			$this->socket->settimeout(1);
+			$this->socket->connect($host, $opts["port"] ?? 514);
+		}
 
 		$this->facility = Syslog::$facilities[$opts["facility"]] ?? Syslog::$facilities["LOG_MAIL"];
 		$this->hostname = $opts["hostname"] ?? gethostname(); 
@@ -56,7 +65,7 @@ class Syslog
 		$priority = Syslog::$priorities[$priority] ?? Syslog::$priorities["debug"];
 		$r = $this->socket->send("<" . ($facility + $priority) . ">" .
 			strftime("%b %d %H:%M:%S", timelocal()) . " " .
-			$this->hostname . " " .
+			($this->hostname !== false ? $this->hostname . " " : "") .
 			$this->application . ": " .
 			$message);
 		return $r !== none and $r > 0;
