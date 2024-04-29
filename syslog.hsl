@@ -50,9 +50,13 @@ class Syslog
 		}
 		else
 		{
-			$this->socket = Socket(Socket::AF($host), "SOCK_DGRAM");
+			$this->socket = Socket(Socket::AF($host), $opts["tls"] or $opts["proto"] === "tcp" ? "SOCK_STREAM" : "SOCK_DGRAM");
 			$this->socket->settimeout(1);
 			$this->socket->connect($host, $opts["port"] ?? 514);
+			if ($opts["tls"]) {
+				$this->socket = TLSSocket($this->socket);
+				$this->socket->handshake();
+			}
 		}
 
 		$this->facility = Syslog::$facilities[$opts["facility"]] ?? Syslog::$facilities["LOG_MAIL"];
